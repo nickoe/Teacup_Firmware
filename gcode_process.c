@@ -514,7 +514,7 @@ void process_gcode_command() {
 				#ifdef HEATER_FAN
 					if ( ! next_target.seen_S)
 						break;
-					temp_set(HEATER_FAN, next_target.S);
+					temp_set(HEATER_FAN, next_target.S*4);
 					if (next_target.S)
 						power_on();
 				#endif

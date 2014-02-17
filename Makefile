@@ -31,14 +31,15 @@
 
 # MCU_TARGET = atmega168
 # MCU_TARGET = atmega328p
-MCU_TARGET = atmega644p
+#MCU_TARGET = atmega644p
+MCU_TARGET = atmega644
 # MCU_TARGET = atmega1280
 # MCU_TARGET = atmega2560
 # MCU_TARGET = at90usb1287
-# MCU_TARGET = atmega32u4
 
 # CPU clock rate
-F_CPU = 16000000L
+#F_CPU = 16000000L
+F_CPU = 20000000L
 # F_CPU = 8000000L
 DEFS = -DF_CPU=$(F_CPU)
 
@@ -60,8 +61,8 @@ AVRDUDECONF = /etc/avrdude.conf
 #                                                                            #
 ##############################################################################
 
-PROGPORT = /dev/arduino
-# PROGPORT = /dev/ttyUSB0
+#PROGPORT = /dev/arduino
+PROGPORT = /dev/ttyUSB0
 
 ##############################################################################
 #                                                                            #
@@ -85,6 +86,10 @@ PROGBAUD = 115200
 ##############################################################################
 
 PROGID = stk500v2
+# at least mega2560 needs stk500v2
+#PROGID = arduino
+#PROGID = avr910
+#PROGID = usbasp
 
 ##############################################################################
 #                                                                            #
@@ -94,7 +99,7 @@ PROGID = stk500v2
 
 PROGRAM = mendel
 
-SOURCES = $(PROGRAM).c gcode_parse.c gcode_process.c dda.c dda_maths.c dda_queue.c timer.c temp.c sermsg.c watchdog.c debug.c sersendf.c heater.c analog.c intercom.c pinio.c clock.c home.c crc.c delay.c serial.c
+SOURCES = $(PROGRAM).c gcode_parse.c gcode_process.c dda.c dda_maths.c dda_queue.c timer.c temp.c sermsg.c watchdog.c debug.c sersendf.c heater.c analog.c intercom.c pinio.c clock.c home.c crc.c delay.c
 
 ARCH = avr-
 CC = $(ARCH)gcc
@@ -104,22 +109,18 @@ OBJCOPY = $(ARCH)objcopy
 OPTIMIZE = -Os -ffunction-sections -finline-functions-called-once -mcall-prologues
 # OPTIMIZE = -O0
 CFLAGS = -g -Wall -Wstrict-prototypes $(OPTIMIZE) -mmcu=$(MCU_TARGET) $(DEFS) -std=gnu99 -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums -save-temps -Winline
-CFLAGS += -fno-move-loop-invariants
-CFLAGS += -fno-tree-scev-cprop
 LDFLAGS = -Wl,--as-needed -Wl,--gc-sections
 LIBS = -lm
 LIBDEPS =
 SUBDIRS =
 
 ifneq (,$(findstring usb,$(MCU_TARGET)))
-USE_USB = true
-endif
-ifneq (,$(findstring u4,$(MCU_TARGET)))
-USE_USB = true
-endif
-ifdef USE_USB
-CFLAGS += -DUSE_USB
-SOURCES += usb_serial.c
+LDFLAGS += -Llufa_serial
+LIBS += -llufa_serial
+SUBDIRS += lufa_serial
+LIBDEPS += lufa_serial/liblufa_serial.a
+else
+SOURCES += serial.c
 endif
 
 ifeq ($(PROGBAUD),0)
@@ -143,11 +144,12 @@ subdirs:
 	done
 
 program: $(PROGRAM).hex config.h
-	stty $(PROGBAUD) raw ignbrk hup < $(PROGPORT)
-	@sleep 0.1
-	@stty $(PROGBAUD) raw ignbrk hup < $(PROGPORT)
+#	stty $(PROGBAUD) raw ignbrk hup < $(PROGPORT)
+#	@sleep 0.1
+#	@stty $(PROGBAUD) raw ignbrk hup < $(PROGPORT)
+#	$(AVRDUDE) -c$(PROGID) $(PROGBAUD_FLAG) -p$(MCU_TARGET) -P$(PROGPORT) -C$(AVRDUDECONF) -U flash:w:$^
 	$(AVRDUDE) -c$(PROGID) $(PROGBAUD_FLAG) -p$(MCU_TARGET) -P$(PROGPORT) -C$(AVRDUDECONF) -U flash:w:$^
-	stty 115200 raw ignbrk -hup -echo ixoff < $(PROGPORT)
+#	stty 115200 raw ignbrk -hup -echo ixoff < $(PROGPORT)
 
 clean: clean-subdirs
 	rm -rf *.o *.elf *.lst *.map *.sym *.lss *.eep *.srec *.bin *.hex *.al *.i *.s *~
